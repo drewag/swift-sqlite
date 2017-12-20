@@ -19,7 +19,7 @@ public final class SQLiteConnection: Connection {
         return self.pointer != nil
     }
 
-    init(path: Path) {
+    public init(path: Path) {
         self.path = path
     }
 
@@ -55,7 +55,7 @@ public final class SQLiteConnection: Connection {
         return SQLError(connection: self.pointer, errorCode: nil, message: message)
     }
 
-    public func run(statement: String, arguments: [Value]) throws {
+    public func run(_ statement: String, arguments: [Value]) throws {
         let (status, handle) = try self.execute(statement: statement, arguments: arguments)
         switch status {
         case SQLITE_ROW, SQLITE_DONE, SQLITE_OK:
@@ -66,13 +66,13 @@ public final class SQLiteConnection: Connection {
         sqlite3_finalize(handle)
     }
 
-    public func run<Query>(statement: String, arguments: [Value]) throws -> Result<Query> where Query : AnyQuery {
-        let (status, handle) = try self.execute(statement: statement, arguments: arguments)
-        let provider = SQLiteResultDataProvider(connection: self.pointer, handle: handle)
+    public func execute<Query>(_ query: Query) throws -> Result<Query> where Query : AnyQuery {
+        let (status, handle) = try self.execute(statement: query.statement, arguments: query.arguments)
+        let provider = SQLiteResultDataProvider(connection: self.pointer, handle: handle, commitStatus: status)
         if Query.self is RowReturningQuery.Type {
             switch status {
             case SQLITE_ROW, SQLITE_DONE:
-                return Result(dataProvider: provider)
+                return Result(dataProvider: provider, query: query)
             default:
                 throw SQLError(connection: self.pointer, errorCode: status)
             }
@@ -80,15 +80,19 @@ public final class SQLiteConnection: Connection {
         else {
             switch status {
             case SQLITE_DONE, SQLITE_OK:
-                return Result(dataProvider: provider)
+                return Result(dataProvider: provider, query: query)
             default:
                 throw SQLError(connection: self.pointer, errorCode: status)
             }
         }
     }
+
+    public var lastInsertedRowId: Int64 {
+        return sqlite3_last_insert_rowid(self.pointer)
+    }
 }
 
-private let SQLITE_STATIC = unsafeBitCast(0, to: sqlite3_destructor_type.self)
+//private let SQLITE_STATIC = unsafeBitCast(0, to: sqlite3_destructor_type.self)
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
 private extension SQLiteConnection {
@@ -96,8 +100,10 @@ private extension SQLiteConnection {
         try self.connect()
 
         let sql = statement.replacingOccurrences(of: "%@", with: "?")
+//        print(sql)
+//        print(arguments)
         var handle: OpaquePointer?
-        var status = sqlite3_prepare_v2(self.pointer, sql, Int32(sql.utf8.count), &handle, nil)
+        let status = sqlite3_prepare_v2(self.pointer, sql, Int32(sql.utf8.count), &handle, nil)
         guard SQLITE_OK == status else {
             sqlite3_finalize(handle)
             throw SQLError(connection: self.pointer, errorCode: status, message: "Error preparing statement")
@@ -110,10 +116,10 @@ private extension SQLiteConnection {
             case .null:
                 status = sqlite3_bind_null(handle, index)
             case .string(let string):
-                status = sqlite3_bind_text(handle, index, string, -1, SQLITE_STATIC)
+                status = sqlite3_bind_text(handle, index, string, -1, SQLITE_TRANSIENT)
             case .data(let data):
                 status = data.withUnsafeBytes { bytes in
-                    return sqlite3_bind_blob(handle, index, bytes, Int32(data.count), SQLITE_STATIC)
+                    return sqlite3_bind_blob(handle, index, bytes, Int32(data.count), SQLITE_TRANSIENT)
                 }
             case .bool(let bool):
                 status = sqlite3_bind_int64(handle, index, bool ? 1 : 0)
@@ -147,12 +153,6 @@ private extension SQLiteConnection {
                 sqlite3_finalize(handle)
                 throw SQLError(connection: self.pointer, errorCode: status, message: "Error binding arguments")
             }
-        }
-
-        status = sqlite3_step(handle)
-        guard SQLITE_OK == status else {
-            sqlite3_finalize(handle)
-            throw SQLError(connection: self.pointer, errorCode: status, message: "Committing statement")
         }
 
         return (sqlite3_step(handle), handle)

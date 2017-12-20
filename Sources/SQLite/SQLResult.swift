@@ -11,10 +11,12 @@ import SQLite3
 public final class SQLiteResultDataProvider: ResultDataProvider {
     let connection: OpaquePointer?
     let handle: OpaquePointer?
+    let commitStatus: Int32
 
-    init(connection: OpaquePointer?, handle: OpaquePointer?) {
+    init(connection: OpaquePointer?, handle: OpaquePointer?, commitStatus: Int32) {
         self.connection = connection
         self.handle = handle
+        self.commitStatus = commitStatus
     }
 
     deinit {
@@ -40,6 +42,7 @@ public final class SQLiteResultDataProvider: ResultDataProvider {
 
 public final class SQLiteRowSequence<Query: RowReturningQuery>: RowSequence<Query> {
     let resultProvider: SQLiteResultDataProvider
+    var isStillOnFirstResult = true
 
     init(resultProvider: SQLiteResultDataProvider) {
         self.resultProvider = resultProvider
@@ -48,7 +51,14 @@ public final class SQLiteRowSequence<Query: RowReturningQuery>: RowSequence<Quer
     }
 
     public override func next() -> Row<Query>? {
-        let status = sqlite3_step(self.resultProvider.handle)
+        let status: Int32
+        if !self.isStillOnFirstResult {
+            status = sqlite3_step(self.resultProvider.handle)
+        }
+        else {
+            status = self.resultProvider.commitStatus
+            self.isStillOnFirstResult = false
+        }
         switch status {
         case SQLITE_ROW:
             return SQLiteRow(resultProvider: self.resultProvider, error: nil)
