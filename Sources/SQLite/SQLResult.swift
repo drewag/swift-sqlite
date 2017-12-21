@@ -82,6 +82,6 @@ extension SQLiteResultDataProvider {
         guard let raw = sqlite3_column_name(self.handle, column) else {
             return nil
         }
-        return String(cString: raw)
+        return String(cString: raw).lowercased()
     }
 }
