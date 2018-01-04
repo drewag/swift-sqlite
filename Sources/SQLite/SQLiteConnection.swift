@@ -99,7 +99,9 @@ private extension SQLiteConnection {
     func execute(statement: String, arguments: [Value]) throws -> (Int32,OpaquePointer?) {
         try self.connect()
 
-        let sql = statement.replacingOccurrences(of: "%@", with: "?")
+        let sql = statement
+            .replacingOccurrences(of: "====to_timestamp====", with: "datetime")
+            .replacingOccurrences(of: "%@", with: "?")
 //        print(sql)
 //        print(arguments)
         var handle: OpaquePointer?
