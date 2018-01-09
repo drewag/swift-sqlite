@@ -7,7 +7,11 @@
 
 import Foundation
 import SQL
-import SQLite3
+#if os(Linux)
+    import CSQLite
+#else
+    import SQLite3
+#endif
 
 public final class SQLiteRow<Query: RowReturningQuery>: Row<Query> {
     let resultProvider: SQLiteResultDataProvider

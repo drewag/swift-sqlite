@@ -7,7 +7,11 @@
 
 import Foundation
 import SQL
-import SQLite3
+#if os(Linux)
+    import CSQLite
+#else
+    import SQLite3
+#endif
 
 extension SQLError {
     init(connection: OpaquePointer?, errorCode: Int32?, message: String? = nil) {

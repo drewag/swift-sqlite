@@ -6,7 +6,11 @@
 //
 
 import SQL
-import SQLite3
+#if os(Linux)
+    import CSQLite
+#else
+    import SQLite3
+#endif
 
 public final class SQLiteResultDataProvider: ResultDataProvider {
     let connection: OpaquePointer?
