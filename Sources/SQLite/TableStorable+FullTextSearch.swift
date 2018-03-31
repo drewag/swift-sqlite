@@ -10,7 +10,7 @@ import SQL
 
 extension TableStorable {
     public static func createFullTextSearch(ifNotExists: Bool = false, fields: [Fields], extra: [QualifiedField] = []) -> CreateFullTextSearchTable {
-        return CreateFullTextSearchTable(name: self.tableName, ifNotExists: ifNotExists, fields: fields.map({$0.stringValue}) + extra.flatMap({$0.name}))
+        return CreateFullTextSearchTable(name: self.tableName, ifNotExists: ifNotExists, fields: fields.map({$0.stringValue}) + extra.compactMap({$0.name}))
     }
 
     public static func createFullTextSearch(ifNotExists: Bool = false, fields: [QualifiedField]) -> CreateFullTextSearchTable {
