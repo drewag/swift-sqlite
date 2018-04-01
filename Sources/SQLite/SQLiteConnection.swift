@@ -111,8 +111,15 @@ private extension SQLiteConnection {
         var handle: OpaquePointer?
         let status = sqlite3_prepare_v2(self.pointer, sql, Int32(sql.utf8.count), &handle, nil)
         guard SQLITE_OK == status else {
+            let message: String
+            if let error = sqlite3_errmsg(self.pointer) {
+                message = String(cString: error)
+            }
+            else {
+                message = "Unknown error"
+            }
             sqlite3_finalize(handle)
-            throw SQLError(connection: self.pointer, errorCode: status, message: "Error preparing statement")
+            throw SQLError(connection: self.pointer, errorCode: status, message: "Error preparing statement: \(message)")
         }
 
         for (index, argument) in arguments.enumerated() {
