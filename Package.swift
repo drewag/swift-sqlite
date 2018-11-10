@@ -13,7 +13,7 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/drewag/swift-sql.git", from: "0.0.0"),
+        .package(url: "https://github.com/drewag/swift-sql.git", from: "1.0.0"),
         .package(url: "https://github.com/stephencelis/CSQLite.git", from: "0.0.3"),
     ],
     targets: [
