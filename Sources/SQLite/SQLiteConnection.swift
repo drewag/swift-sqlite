@@ -160,6 +160,12 @@ private extension SQLiteConnection {
                 status = sqlite3_bind_int64(handle, index, Int64(value))
             case .uint64(let value):
                 status = sqlite3_bind_int64(handle, index, Int64(value))
+            case .point(let x, let y):
+                let string = #"{"x":\#(x),"y":\#(y)"}"#
+                status = sqlite3_bind_text(handle, index, string, -1, SQLITE_TRANSIENT)
+            case .time(let hour, let minute, let second):
+                let string = "\(hour):\(minute):\(second)"
+                status = sqlite3_bind_text(handle, index, string, -1, SQLITE_TRANSIENT)
             }
 
             guard status == SQLITE_OK else {
