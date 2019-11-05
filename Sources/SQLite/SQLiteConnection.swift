@@ -106,6 +106,7 @@ private extension SQLiteConnection {
         let sql = statement
             .replacingOccurrences(of: "====to_timestamp====", with: "datetime")
             .replacingOccurrences(of: "%@", with: "?")
+            .replacingOccurrences(of: "====data_type====", with: "data")
 //        print(sql)
 //        print(arguments)
         var handle: OpaquePointer?
