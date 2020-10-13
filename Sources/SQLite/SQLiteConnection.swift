@@ -91,6 +91,17 @@ public final class SQLiteConnection: Connection {
         }
     }
 
+    public func execute<Query>(_ query: Query) throws -> RowsResult<Query> where Query : RowReturningQuery {
+        let (status, handle) = try self.execute(statement: query.statement, arguments: query.arguments)
+        let provider = SQLiteResultDataProvider(connection: self.pointer, handle: handle, commitStatus: status)
+        switch status {
+        case SQLITE_ROW, SQLITE_DONE:
+            return RowsResult(dataProvider: provider, query: query)
+        default:
+            throw SQLError(connection: self.pointer, errorCode: status)
+        }
+    }
+
     public var lastInsertedRowId: Int64 {
         return sqlite3_last_insert_rowid(self.pointer)
     }
